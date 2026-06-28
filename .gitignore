@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.idea/
+*.log
+venv/git
+
+# 模型权重文件
+models/
+processed/
+*.safetensors
+*.bin
+*.pth
+*.ckpt
+
+# Python缓存
+__pycache__/
+.DS_Store

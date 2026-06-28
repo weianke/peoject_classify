@@ -1,0 +1,79 @@
+{
+  "builder_name": "csv",
+  "citation": "",
+  "config_name": "default",
+  "dataset_name": "csv",
+  "dataset_size": 8832259,
+  "description": "",
+  "download_checksums": {
+    "/Users/anke/Desktop/project_classify/data/raw/train.txt": {
+      "num_bytes": 4644637,
+      "checksum": null
+    },
+    "/Users/anke/Desktop/project_classify/data/raw/valid.txt": {
+      "num_bytes": 1161322,
+      "checksum": null
+    },
+    "/Users/anke/Desktop/project_classify/data/raw/test.txt": {
+      "num_bytes": 1161322,
+      "checksum": null
+    }
+  },
+  "download_size": 6967281,
+  "features": {
+    "input_ids": {
+      "feature": {
+        "dtype": "int32",
+        "_type": "Value"
+      },
+      "_type": "Sequence"
+    },
+    "token_type_ids": {
+      "feature": {
+        "dtype": "int8",
+        "_type": "Value"
+      },
+      "_type": "Sequence"
+    },
+    "attention_mask": {
+      "feature": {
+        "dtype": "int8",
+        "_type": "Value"
+      },
+      "_type": "Sequence"
+    },
+    "labels": {
+      "dtype": "int64",
+      "_type": "Value"
+    }
+  },
+  "homepage": "",
+  "license": "",
+  "size_in_bytes": 15799540,
+  "splits": {
+    "train": {
+      "name": "train",
+      "num_bytes": 5887959,
+      "num_examples": 88824,
+      "dataset_name": "csv"
+    },
+    "valid": {
+      "name": "valid",
+      "num_bytes": 1472150,
+      "num_examples": 22207,
+      "dataset_name": "csv"
+    },
+    "test": {
+      "name": "test",
+      "num_bytes": 1472150,
+      "num_examples": 22207,
+      "dataset_name": "csv"
+    }
+  },
+  "version": {
+    "version_str": "0.0.0",
+    "major": 0,
+    "minor": 0,
+    "patch": 0
+  }
+}
