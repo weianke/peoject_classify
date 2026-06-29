@@ -3,6 +3,7 @@ import time
 import torch
 from torch.optim.adam import Adam
 from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 # 导入预训练分词器（后续文本分词使用）
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, DataCollatorWithPadding
 from configuration.config import *
@@ -62,7 +63,41 @@ class Trainer:
 
     # 核心训练方法
     def train(self):
-        pass
+        self.model.train()
+        # 获取训练集加载器
+        dataloader = self._get_dataloader()
+
+        # 双层for循环，外出遍历所有的epoch
+        for epoch in range(self.train_config.epochs):
+            # 内层循环遍一个epochs的所有批次
+            for inputs in tqdm(dataloader, desc=f'[Epoch: {epoch+1}]'):
+                # 调用一步（step)的训练过程，得到损失
+                this_loss = self._train_one_step(inputs)
+
+                # 判断如果达到save_steps就记录损失，判断是否保存模型
+                if self.step % self.train_config.save_steps == 0:
+                    # 记录损失
+                    tqdm.write(f'[Epoch {epoch+1} | Step: {self.step}] Loss:{this_loss}')
+                    self.writer.add_scalar('loss', this_loss, self.step)
+                    # 判断是否保存模型
+                    if this_loss < self.min_loss:
+                        self.min_loss = this_loss
+                        tqdm.write('保存最优模型...')
+                        self.model.save_pretrained(self.train_config.output_dir)
+
+                self.step += 1  #迭代次数+1
+
+    # 一步训练
+    def _train_one_step(self, inputs):
+        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        # 前向传播
+        outputs = self.model(**inputs)
+        loss = outputs.loss
+        # 反向传播
+        loss.backward()
+        self.optimizer.step()
+        self.optimizer.zero_grad()
+        return loss.item()
 
 if __name__ == '__main__':
     # 1. 定义设备
