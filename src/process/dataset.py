@@ -8,6 +8,14 @@ from torch.utils.data import DataLoader
 from configuration.config import *
 
 
+# 获取数据集
+def get_dataset(ds_type='train'):
+    # 拼接数据集文件夹路径
+    path = str(PROCESSED_DATA_DIR / ds_type)
+    # 读取磁盘上保存的arrow格式数据集
+    dataset = load_from_disk(path)
+    return dataset
+
 # 构造训练/验证集的数据迭代器
 def get_dataloader(tokenizer, ds_type='train'):
     # 拼接数据集文件夹路径
