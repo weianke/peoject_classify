@@ -1,5 +1,8 @@
+import time
+
 import torch
 from torch.optim.adam import Adam
+from torch.utils.tensorboard import SummaryWriter
 # 导入预训练分词器（后续文本分词使用）
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, DataCollatorWithPadding
 from configuration.config import *
@@ -15,7 +18,9 @@ class TrainConfig:
     epochs: int = 10
     batch_size: int = 16
     learning_rate: float = 1e-5
+    save_steps: int = 100
     output_dir: str = MODEL_DIR
+    log_dir: str = LOG_DIR
 
 # 训练器类
 class Trainer:
@@ -31,6 +36,14 @@ class Trainer:
         self.collate_fn = collate_fn
         # 优化器
         self.optimizer = Adam(model.parameters(), lr=self.train_config.learning_rate)
+        # 全局迭代次数（运行的step数）
+        self.step = 1
+        # tensorboard写入器
+        self.writer = SummaryWriter(
+            log_dir=str(Path(self.train_config.log_dir) / time.strftime("%Y-%m-%d %H-%M-%S"))
+        )
+        # 全局最小的loss值
+        self.min_loss = float('inf')
 
     # 定义内部方法：获取数据加载
     def _get_dataloader(self):
