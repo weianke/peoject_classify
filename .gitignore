@@ -11,7 +11,7 @@ processed/
 *.bin
 *.pth
 *.ckpt
-
+logs/
 # Python缓存
 __pycache__/
 .DS_Store

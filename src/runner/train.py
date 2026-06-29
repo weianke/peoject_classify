@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 @dataclass
 class TrainConfig:
     epochs: int = 10
-    batch_size: int = 16
+    batch_size: int = 4
     learning_rate: float = 1e-5
     save_steps: int = 100
     output_dir: str = MODEL_DIR
@@ -26,14 +26,14 @@ class TrainConfig:
 # 训练器类
 class Trainer:
     # 初始化（修正拼写 __init__）
-    def __init__(self, model, train_dateset, collate_fn , device, train_config=None):
+    def __init__(self, model, train_dataset, collate_fn , device, train_config=None):
         # 训练参数配置
         self.train_config = train_config
         # 模型和设备
         self.model = model.to(device)
         self.device = device
         # 数据集和数据整理函数
-        self.train_dataset = train_dateset
+        self.train_dataset = train_dataset
         self.collate_fn = collate_fn
         # 优化器
         self.optimizer = Adam(model.parameters(), lr=self.train_config.learning_rate)
@@ -49,14 +49,14 @@ class Trainer:
     # 定义内部方法：获取数据加载
     def _get_dataloader(self):
         # 将数据集格式直接转为PyTorch张量格式
-        self.train_dataset.set_format(type='torch')
+        # self.train_dataset.set_format(type='torch')
 
         # 构建DataLoader迭代器
         dataloader = DataLoader(
             self.train_dataset,  # 传入加载好的数据集对象
             batch_size=self.train_config.batch_size,  # 设置单次迭代样本数量
             shuffle=True,  # 打乱训练集样本顺序
-            collate_fn=self.collate_fn  # 使用自定义填充函数组批次
+            collate_fn=self.collate_fn,  # 使用自定义填充函数组批次
         )
         return dataloader
 
@@ -125,7 +125,7 @@ if __name__ == '__main__':
     # 把模型迁移到GPU/CPU设备
     model = model.to(device)
 
-    print(model.config.label2id)
+    # print(model.config.label2id)
     model.save_pretrained(MODEL_DIR)
 
     # 5. 数据集和整理函数
@@ -142,7 +142,7 @@ if __name__ == '__main__':
     # 7. 定义训练器
     trainer = Trainer(
         model=model,
-        train_dateset=train_dataset,
+        train_dataset=train_dataset,
         collate_fn=collate_fn,
         device=device,
         train_config=train_config
