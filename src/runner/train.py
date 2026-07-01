@@ -1,6 +1,6 @@
 import time
-
 import torch
+from sklearn.metrics import accuracy_score, f1_score
 from torch.optim.adam import Adam
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
@@ -26,7 +26,7 @@ class TrainConfig:
 # 训练器类
 class Trainer:
     # 初始化（修正拼写 __init__）
-    def __init__(self, model, train_dataset, collate_fn , device, train_config=None):
+    def __init__(self, model, train_dataset, valid_dataset , collate_fn , compute_metrics, device, train_config=None):
         # 训练参数配置
         self.train_config = train_config
         # 模型和设备
@@ -34,7 +34,10 @@ class Trainer:
         self.device = device
         # 数据集和数据整理函数
         self.train_dataset = train_dataset
+        self.valid_dataset = valid_dataset
         self.collate_fn = collate_fn
+        # 评估函数
+        self.compute_metrics = compute_metrics
         # 优化器
         self.optimizer = Adam(model.parameters(), lr=self.train_config.learning_rate)
         # 全局迭代次数（运行的step数）
@@ -47,13 +50,13 @@ class Trainer:
         self.min_loss = float('inf')
 
     # 定义内部方法：获取数据加载
-    def _get_dataloader(self):
+    def _get_dataloader(self, dataset):
         # 将数据集格式直接转为PyTorch张量格式
-        # self.train_dataset.set_format(type='torch')
+        dataset.set_format(type='torch')
 
         # 构建DataLoader迭代器
         dataloader = DataLoader(
-            self.train_dataset,  # 传入加载好的数据集对象
+            dataset,  # 传入加载好的数据集对象
             batch_size=self.train_config.batch_size,  # 设置单次迭代样本数量
             shuffle=True,  # 打乱训练集样本顺序
             collate_fn=self.collate_fn,  # 使用自定义填充函数组批次
@@ -65,7 +68,7 @@ class Trainer:
     def train(self):
         self.model.train()
         # 获取训练集加载器
-        dataloader = self._get_dataloader()
+        dataloader = self._get_dataloader(self.train_dataset)
 
         # 双层for循环，外出遍历所有的epoch
         for epoch in range(self.train_config.epochs):
@@ -95,10 +98,41 @@ class Trainer:
         loss = outputs.loss
         # 反向传播
         loss.backward()
+
         self.optimizer.step()
         self.optimizer.zero_grad()
         return loss.item()
 
+    # 核心验证方法,返回字典，记录不同的评价指标: {loss:0.35, acc: 0.89, f1: 0.76}
+    def evaluate(self) -> dict:
+        # 获取验证集数据加载器
+        dataloader = self._get_dataloader(self.valid_dataset)
+        self.model.eval()
+
+        total_loss = 0.0
+        all_labels = []  # 所有数据真实标签
+        all_preds = [] # 所有数据预测标签
+
+        for inputs in tqdm(dataloader, desc=f'[Evaluate]'):
+            inputs = { k: v.to(self.device) for k, v in inputs.items() }
+            # 前向传播
+            outputs = self.model(**inputs)
+            loss = outputs.loss
+            total_loss = loss.item()
+            # 预测分类结果
+            logits = outputs.logits
+            preds = torch.argnax(logits, din=-1)
+            all_preds.extend(preds.tolist())
+            # 获取标签合并到列表
+            labels = inputs['label']
+            all_labels.extends(labels.tolist())
+        # 遍历晚餐验证集数据，计算平均损失和其他指标
+        loss = total_loss / len(dataloader)
+        metrics = self.compute_metrics(all_labels, all_preds) # 返回一组指标的字典
+        return {'loss': loss, **metrics}
+
+
+# 训练调用流程
 if __name__ == '__main__':
     # 1. 定义设备
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -129,12 +163,20 @@ if __name__ == '__main__':
     model.save_pretrained(MODEL_DIR)
 
     # 5. 数据集和整理函数
-    train_dataset = get_dataset()
+    train_dataset = get_dataset('train')
+    valid_dataset = get_dataset('valid')
     collate_fn = DataCollatorWithPadding(
         tokenizer=tokenizer,  # 使用当前分词器匹配填充规则
         padding=True,  # 开启批次内动态填充
         return_tensors='pt',  # 输出格式为PyTorch tensor
     )
+
+    # 评估函数: 根据实际需求定义 acc和f1
+    def compute_metrics(preds, labels) -> dict:
+        acc = accuracy_score(labels, preds)
+        f1 = f1_score(labels, preds, average='weighted')
+        return {'acc': acc, 'f1': f1}
+
 
     # 6. 定义训练配置
     train_config = TrainConfig()
@@ -143,7 +185,9 @@ if __name__ == '__main__':
     trainer = Trainer(
         model=model,
         train_dataset=train_dataset,
+        valid_dataset=valid_dataset,
         collate_fn=collate_fn,
+        compute_metrics=compute_metrics,
         device=device,
         train_config=train_config
     )
